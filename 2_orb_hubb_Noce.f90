@@ -17,7 +17,7 @@ module glob_var
 	integer shift,m_size,fl,iter,count,flag_t,flag_mu,d,seed,seedC,seedV,orbital
 	double precision temp,mus,np1,alpha
 	double precision n_av,n_av2,muav,mu_sum2,av_count,r
-    double precision :: U,J_val,m_d,fill,V,filling
+    double precision :: U,J_val,m_d,fill,V,filling,d_omega
     double precision :: A1,B1,e_onsite 
     complex*16       :: AA1,AA2,AA3,AA4,AA5,AA6,AA7,AA8,AA9,AA10,AA11,AA12,i_complex
     double precision :: t_aa,t_ab,t_ba,t_bb,ipr2,ipr_a,ipr_b
@@ -405,7 +405,6 @@ do i =1,d**2
     !write(29,*) i,w(i)
  !enddo 
 
-double precision :: d_omega
 d_omega=0.01d0
 
 dos_en1 =  w(1)-m_d -0.5
