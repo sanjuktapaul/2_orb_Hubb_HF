@@ -1,17 +1,18 @@
 2                 ! Orbital
-8                ! Dimension
+16                ! Dimension
 0.250d0           ! alpha
 6.00d0             ! U
 1.50d00            ! Filling
 0.0010d00         ! Temperature
 1            ! seed
-2	        ! seed
-0.00d0             ! Disorder potential
+4               ! seed
+7.00d0             ! Disorder potential
 1.0d0             ! t_aa
 0.0d0        ! t_ab
 0.0d0         ! t_ba
 1.0d0         ! t_bb
 0.020d0           !delta_mu
 0.050d0           !gama for p(n)
-0.40d0            !gama for dos
+0.1d0            !gama for dos
 0.900000d0         !J
+1		  !1=Reed seed from file, "not 1"=use seed_configuration given above

@@ -40,19 +40,22 @@ double precision :: orb,binsize,binsize_n,gama,pii
 double precision :: f0, f, fL2, fR, m, mR, mL, rtmp,f_t
 double precision :: energy1, energy2,energy,energy_cl1, energy_cl2,chem_pot
 double precision :: BB1,q,numbr,dos_en,dos_en1,gama_d,delta_mu
-double precision ::BB2,input,op1,op2,op3,op4,op5,op6
+double precision ::BB2,input
+double precision :: op1,op2,op3,op4,op5,op6
 complex*16 ::dos_aa_up,dos_bb_up,dos_aa_dwn,dos_bb_dwn,dos
 double precision :: BB3,BB4,BB5,BB6,q_x,q_y
 double precision ::en_mu_l,en_mu_u,prob_sum
 integer ::i,j,k,p,ww,l,omega,kk,i_nx,i_ny
 integer :: id,ii,jd,ji,i_i,j_j,a,b,nbin,nn
 integer ::iii,count1,ref,sum1,count2,site
+integer :: int_read_seed
 
-	open(unit=12,file="input.inp",status="unknown")
-	
-	do i=1,17
-	read(12,*)input
-	if(i.eq.1)orbital=int(input)
+
+    open(unit=12,file="input.inp",status="unknown")
+
+    do i=1,18
+    read(12,*) input
+    if(i.eq.1)orbital=int(input)
     if(i.eq.2)d=int(input)
     if(i.eq.3)alpha= dble(input)
     if(i.eq.4)U=dble(input)
@@ -69,9 +72,8 @@ integer ::iii,count1,ref,sum1,count2,site
     if(i.eq.15)gama=dble(input)
     if(i.eq.16)gama_d=dble(input)
     if(i.eq.17)J_val=dble(input)
- 
-	
-	enddo
+    if(i.eq.18)int_read_seed=int(input) 
+    enddo
     close(12)
      
     print*,'orbital=',orbital
@@ -91,6 +93,7 @@ integer ::iii,count1,ref,sum1,count2,site
     print*,'gama_p(n)',gama  
     print*,'gama_dos',gama_d 
     print*,'J',J_val
+    print*,'int_read_seed', int_read_seed
 
 
 
@@ -122,7 +125,7 @@ open (14,file = 'MF_param_biased.dat')
 open (15, file ='consis_steps.dat')
 open (26, file = 'energy_file.dat')
 open (27, file ='num_densities.dat')
-open (28, file ='MF_param.dat')
+open (28, file ='Output_OrderParams.dat')
 open (33, file ='eigen_val.dat')
 open (31, file ='ipr.dat')
 open (39, file ='dis_prof.dat')
@@ -142,6 +145,9 @@ open (103,file ='dos_b.dat')
 open (104,file ='dos_a+b.dat')
 !open (185,file ='qosf.dat')
 open (200,file ='local_S2_T2.dat')
+open (1001, file ='Initial_OrderParams.dat')
+open (1002 ,file = 'Input_OrderParams.dat')
+
 
 
 !Matrix label generator
@@ -195,24 +201,12 @@ goto 11
 !goto 12
  
   call sgrnd(seedC)
+
+if (int_read_seed .ne. 1) then
  do i =1,d**2
  call rannum(r)
  !write(*,*) r,'r'
  if (r.le. 0.50d0) then
- ! phi_x(i) = -1.0d0
- ! zhi_x(i) =-1.0d0
-  !phi_y(i) = -1.0d0
-  !zhi_y(i) =-1.0d0   
- !phi_z(i) = -1.0d0
- !zhi_z(i) = -1.0d0
- !else
- !phi_x(i) = 1.0d0
- !zhi_x(i) =1.0d0
- !phi_y(i) = 1.0d0
- !zhi_y(i) =1.0d0
- !phi_z(i) = 1.0d0
- !zhi_z(i) = 1.0d0
-
  
  call rannum(r)
 
@@ -242,8 +236,10 @@ goto 11
  zhi_z(i) = r
  endif
  enddo
+endif
+!12 continue
 
-12 continue
+
  ! pause
  
 !Condition 3: Initializing to some particular value
@@ -251,18 +247,26 @@ goto 11
  !phi_z = 0.50d0
  !zhi_z = 0.50d0 
 
-!Biased initial configuration
 
- !do i =1,d**2
- !read (14,*) site,op1,op2,op3,op4,op5,op6
- !phi_x(i) = op1
- !phi_y(i) = op2
- !phi_z(i) = op3
- !zhi_x(i) = op4
- !zhi_y(i) = op5
- !zhi_z(i) = op6
- !enddo
+
+!Biased initial configuration
  
+ if (int_read_seed .eq. 1) then
+ do i =1,d**2
+ read (1002,*) site,op1,op2,op3,op4,op5,op6
+ phi_x(i) = cmplx(op1, 0.0)
+ phi_y(i) = cmplx(op2, 0.0)
+ phi_z(i) = cmplx(op3, 0.0)
+ zhi_x(i) = cmplx(op4, 0.0)
+ zhi_y(i) = cmplx(op5, 0.0)
+ zhi_z(i) = cmplx(op6, 0.0)
+ enddo
+ endif
+
+
+do i =1,d**2
+ write (1001,*) i, real(phi_x(i)), real(phi_y(i)),  real(phi_z(i)), real(zhi_x(i)), real(zhi_y(i)), real(zhi_z(i))
+ enddo
 !*********************************************************************************************
 
  up_up=0.0d0
@@ -273,6 +277,7 @@ goto 11
         call matrix_gen
         call get_mu
         call mf
+
         energy = 0.0d0
         do i=1,m_size
      	  energy=energy+w(i)*(1.0d0/(1.0d0+exp((w(i)-m_d)/temp)))
@@ -286,9 +291,12 @@ goto 11
                            ((3.0d0/4.0d0)*(2*U -3*J_val)*(n_a_up(i)+n_a_dwn(i)+n_b_up(i)+n_b_dwn(i)))
        enddo
         energy1 =energy+energy_cl1
-       call mf
+       
+
+       
        call matrix_gen
        call get_mu
+       call mf
      
        energy2 = 0.0d0
        energy_cl2 = 0.0d0
@@ -304,6 +312,10 @@ goto 11
         energy2 = energy2 + energy_cl2                  
 	
 
+	write(26,*) energy1,energy2, energy_cl1, energy_cl2,  (energy2 - energy1), 0
+
+
+
 !***************************Consistency check*************************************************     
     
    
@@ -311,6 +323,7 @@ goto 11
     
     
     energy1 = energy2
+    energy_cl1=energy_cl2
     
     call mf
     call matrix_gen
@@ -331,8 +344,7 @@ goto 11
         energy2 = energy2 + energy_cl2                  
 	
     count1 = count1+1
-   ! write(26,*) energy1,energy2,(energy1-energy2),count1
-    write(26,*) energy1,energy_cl1,energy2,energy_cl2,(energy1+energy_cl1-energy2-energy_cl2),count1
+    write(26,*) energy1,energy2, energy_cl1, energy_cl2, (energy2 - energy1),count1
     call flush(26)
     f=0.0d0
 	do i=1,m_size
@@ -393,24 +405,26 @@ goto 11
     !write(29,*) i,w(i)
  !enddo 
 
+double precision :: d_omega
+d_omega=0.01d0
 
-dos_en1 =  w(1)
-do while (dos_en1.le. w(4*d**2))
+dos_en1 =  w(1)-m_d -0.5
+do while (dos_en1.le. w(4*d**2)-m_d + 0.5)
 dos = (0.0,0.0)
 do i = 1, 4*d**2
-dos = dos + (gama_d/pii)/(gama_d**2 + (dos_en1-w(i)-m_d)**2)
+dos = dos + (gama_d/pii)/(gama_d**2 + (dos_en1- (w(i) - m_d) )**2)
 enddo
-dos_en1 = dos_en1 +0.10d0 
-write(100,*) dos_en1-m_d, real(dos) 
+dos_en1 = dos_en1 + d_omega
+write(100,*) dos_en1, real(dos) 
 enddo
 
 !!Projected DOS
 
 
 
-dos_en =  w(1)
+dos_en =  w(1)-m_d -0.5
 omega = 0
-do while (dos_en.le. w(4*d**2))
+do while (dos_en.le. w(4*d**2)-m_d +0.5)
 dos_aa_up = (0.0,0.0)
 dos_aa_dwn = (0.0,0.0)
 dos_bb_up = (0.0,0.0)
@@ -418,21 +432,21 @@ dos_bb_dwn = (0.0,0.0)
 do j =1, d**2
 do i = 1, 4*d**2
 
-dos_aa_up = dos_aa_up+  H(2*j-1,i)*conjg(H(2*j-1,i))*((gama_d/pii)/(gama_d**2 + (dos_en-w(i)-m_d)**2))
-dos_aa_dwn = dos_aa_dwn+  H(2*d**2+2*j-1,i)*conjg(H(2*d**2+2*j-1,i))*((gama_d/pii)/(gama_d**2 + (dos_en-w(i)-m_d)**2))
+dos_aa_up = dos_aa_up+  H(2*j-1,i)*conjg(H(2*j-1,i))*((gama_d/pii)/(gama_d**2 + (dos_en- (w(i) - m_d)   )**2))
+dos_aa_dwn = dos_aa_dwn+  H(2*d**2+2*j-1,i)*conjg(H(2*d**2+2*j-1,i))*((gama_d/pii)/(gama_d**2 + (dos_en- (w(i) - m_d)  )**2))
 
 
-dos_bb_up = dos_bb_up + H(2*j,i)*conjg(H(2*j,i))*((gama_d/pii)/(gama_d**2 + (dos_en-w(i)-m_d)**2))
-dos_bb_dwn = dos_bb_dwn + H(2*d**2+2*j,i)*conjg(H(2*d**2+2*j,i))*((gama_d/pii)/(gama_d**2 + (dos_en-w(i)-m_d)**2))
+dos_bb_up = dos_bb_up + H(2*j,i)*conjg(H(2*j,i))*((gama_d/pii)/(gama_d**2 + (dos_en-  (w(i) - m_d) )**2))
+dos_bb_dwn = dos_bb_dwn + H(2*d**2+2*j,i)*conjg(H(2*d**2+2*j,i))*((gama_d/pii)/(gama_d**2 + (dos_en-  (w(i) - m_d) )**2))
 
 
 
 enddo
 enddo
-dos_en = dos_en +0.10d0 
-write(102,*) dos_en-m_d,  real(dos_aa_up),real(dos_bb_up)
-write(103,*) dos_en-m_d, real(dos_aa_dwn),real(dos_bb_dwn)
-write(104,*) dos_en-m_d, real(dos_aa_up+dos_aa_dwn+dos_bb_up+dos_bb_dwn)
+dos_en = dos_en + d_omega 
+write(102,*) dos_en,  real(dos_aa_up),real(dos_bb_up)
+write(103,*) dos_en, real(dos_aa_dwn),real(dos_bb_dwn)
+write(104,*) dos_en, real(dos_aa_up+dos_aa_dwn+dos_bb_up+dos_bb_dwn)
 enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
